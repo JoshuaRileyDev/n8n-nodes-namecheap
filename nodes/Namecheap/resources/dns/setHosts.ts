@@ -36,6 +36,28 @@ export const dnsSetHostsDescription: INodeProperties[] = [
 				displayName: 'Record',
 				values: [
 					{
+						displayName: 'Address/Value',
+						name: 'address',
+						type: 'string',
+						default: '',
+						required: true,
+						description: 'The value for the DNS record (IP address, domain name, text, etc.)',
+					},
+					{
+						displayName: 'Host Name',
+						name: 'hostName',
+						type: 'string',
+						default: '@',
+						description: 'Sub-domain/host name or	@	for the root domain',
+					},
+					{
+						displayName: 'MX Priority',
+						name: 'mxPref',
+						type: 'number',
+						default: 10,
+						description: 'Priority for MX records (lower number	=	higher priority)',
+					},
+					{
 						displayName: 'Record Type',
 						name: 'type',
 						type: 'options',
@@ -51,19 +73,24 @@ export const dnsSetHostsDescription: INodeProperties[] = [
 								description: 'IPv6 address record',
 							},
 							{
+								name: 'CAA',
+								value: 'CAA',
+								description: 'Certificate authority authorization',
+							},
+							{
 								name: 'CNAME',
 								value: 'CNAME',
 								description: 'Canonical name record',
 							},
 							{
+								name: 'FRAME',
+								value: 'FRAME',
+								description: 'URL frame redirect',
+							},
+							{
 								name: 'MX',
 								value: 'MX',
 								description: 'Mail exchange record',
-							},
-							{
-								name: 'TXT',
-								value: 'TXT',
-								description: 'Text record',
 							},
 							{
 								name: 'NS',
@@ -76,9 +103,9 @@ export const dnsSetHostsDescription: INodeProperties[] = [
 								description: 'Service record',
 							},
 							{
-								name: 'CAA',
-								value: 'CAA',
-								description: 'Certificate authority authorization',
+								name: 'TXT',
+								value: 'TXT',
+								description: 'Text record',
 							},
 							{
 								name: 'URL',
@@ -90,29 +117,9 @@ export const dnsSetHostsDescription: INodeProperties[] = [
 								value: 'URL301',
 								description: 'Permanent URL redirect (301)',
 							},
-							{
-								name: 'FRAME',
-								value: 'FRAME',
-								description: 'URL frame redirect',
-							},
 						],
 						default: 'A',
 						description: 'The type of DNS record',
-					},
-					{
-						displayName: 'Host Name',
-						name: 'hostName',
-						type: 'string',
-						default: '@',
-						description: 'Sub-domain/host name or @ for the root domain',
-					},
-					{
-						displayName: 'Address/Value',
-						name: 'address',
-						type: 'string',
-						default: '',
-						required: true,
-						description: 'The value for the DNS record (IP address, domain name, text, etc.)',
 					},
 					{
 						displayName: 'TTL',
@@ -120,18 +127,6 @@ export const dnsSetHostsDescription: INodeProperties[] = [
 						type: 'number',
 						default: 1800,
 						description: 'Time to live in seconds (minimum 60, default 1800)',
-					},
-					{
-						displayName: 'MX Priority',
-						name: 'mxPref',
-						type: 'number',
-						default: 10,
-						displayOptions: {
-							show: {
-								type: ['MX'],
-							},
-						},
-						description: 'Priority for MX records (lower number = higher priority)',
 					},
 				],
 			},

@@ -6,10 +6,92 @@ import {
 	type INodeExecutionData,
 	type IHttpRequestOptions,
 	type IDataObject,
+	ApplicationError,
 } from 'n8n-workflow';
-import { parseString } from 'xml2js';
 import { domainDescription } from './resources/domain';
 import { dnsDescription } from './resources/dns';
+
+// Simple XML to JSON parser without external dependencies
+function parseXmlToJson(xml: string): Record<string, unknown> {
+	// Remove XML declaration and whitespace
+	const cleanXml = xml.replace(/<\?xml[^?]*\?>/g, '').trim();
+
+	function parseNode(xmlStr: string): Record<string, unknown> | string {
+		// Match opening tag with attributes
+		const tagMatch = xmlStr.match(/^<([^\s>]+)([^>]*)>/);
+		if (!tagMatch) return xmlStr;
+
+		const tagName = tagMatch[1];
+		const attributes = tagMatch[2];
+		const closingTag = `</${tagName}>`;
+
+		// Find matching closing tag
+		const closingIndex = xmlStr.lastIndexOf(closingTag);
+		if (closingIndex === -1) return xmlStr;
+
+		const content = xmlStr.substring(tagMatch[0].length, closingIndex);
+		const obj: Record<string, unknown> = {};
+
+		// Parse attributes
+		if (attributes.trim()) {
+			const attrMatches = attributes.matchAll(/(\w+)="([^"]*)"/g);
+			for (const match of attrMatches) {
+				obj[match[1]] = match[2];
+			}
+		}
+
+		// Check if content contains child elements or is just text
+		if (!content.includes('<')) {
+			// Just text content
+			return Object.keys(obj).length > 0 ? { ...obj, _text: content } : content;
+		}
+
+		// Parse child elements
+		let remaining = content;
+		while (remaining.trim()) {
+			const childTagMatch = remaining.match(/^<([^\s>]+)([^>]*)>/);
+			if (!childTagMatch) {
+				// Text content before next tag
+				const nextTag = remaining.indexOf('<');
+				if (nextTag > 0) {
+					const text = remaining.substring(0, nextTag).trim();
+					if (text) obj['_text'] = text;
+					remaining = remaining.substring(nextTag);
+				} else {
+					const text = remaining.trim();
+					if (text) obj['_text'] = text;
+					break;
+				}
+			} else {
+				const childTagName = childTagMatch[1];
+				const childClosing = `</${childTagName}>`;
+				const childEnd = remaining.indexOf(childClosing);
+
+				if (childEnd === -1) break;
+
+				const childXml = remaining.substring(0, childEnd + childClosing.length);
+				const childValue = parseNode(childXml);
+
+				// Handle multiple elements with same name
+				if (obj[childTagName]) {
+					if (Array.isArray(obj[childTagName])) {
+						(obj[childTagName] as unknown[]).push(childValue);
+					} else {
+						obj[childTagName] = [obj[childTagName], childValue];
+					}
+				} else {
+					obj[childTagName] = childValue;
+				}
+
+				remaining = remaining.substring(childEnd + childClosing.length).trim();
+			}
+		}
+
+		return obj;
+	}
+
+	return parseNode(cleanXml) as Record<string, unknown>;
+}
 
 export class Namecheap implements INodeType {
 	description: INodeTypeDescription = {
@@ -43,7 +125,7 @@ export class Namecheap implements INodeType {
 						value: 'domain',
 					},
 					{
-						name: 'DNS',
+						name: 'DN',
 						value: 'dns',
 					},
 				],
@@ -52,6 +134,7 @@ export class Namecheap implements INodeType {
 			...domainDescription,
 			...dnsDescription,
 		],
+		usableAsTool: true,
 	};
 
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
@@ -124,7 +207,7 @@ export class Namecheap implements INodeType {
 					// Parse domain name into SLD and TLD
 					const domainParts = domainName.split('.');
 					if (domainParts.length < 2) {
-						throw new Error('Invalid domain name format. Expected format: example.com');
+						throw new ApplicationError('Invalid domain name format. Expected format: example.com');
 					}
 					const tld = domainParts.pop();
 					const sld = domainParts.join('.');
@@ -168,7 +251,7 @@ export class Namecheap implements INodeType {
 							.map((ns) => ns.trim())
 							.filter((ns) => ns);
 						if (nameserverList.length < 2) {
-							throw new Error('At least 2 nameservers are required');
+							throw new ApplicationError('At least 2 nameservers are required');
 						}
 
 						qs.Nameservers = nameserverList.join(',');
@@ -191,16 +274,8 @@ export class Namecheap implements INodeType {
 				);
 
 				// Parse XML response to JSON
-				const parsedData: any = await new Promise((resolve, reject) => {
-					const xmlString = typeof response === 'string' ? response : JSON.stringify(response);
-					parseString(xmlString, { explicitArray: false, mergeAttrs: true }, (err, result) => {
-						if (err) {
-							reject(err);
-						} else {
-							resolve(result);
-						}
-					});
-				});
+				const xmlString = typeof response === 'string' ? response : JSON.stringify(response);
+				const parsedData = parseXmlToJson(xmlString) as IDataObject;
 
 				returnData.push({
 					json: parsedData,

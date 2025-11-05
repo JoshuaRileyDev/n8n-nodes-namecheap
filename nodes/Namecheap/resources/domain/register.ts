@@ -51,18 +51,6 @@ export const domainRegisterDescription: INodeProperties[] = [
 		},
 		options: [
 			{
-				displayName: 'First Name',
-				name: 'firstName',
-				type: 'string',
-				default: '',
-			},
-			{
-				displayName: 'Last Name',
-				name: 'lastName',
-				type: 'string',
-				default: '',
-			},
-			{
 				displayName: 'Address 1',
 				name: 'address1',
 				type: 'string',
@@ -81,23 +69,35 @@ export const domainRegisterDescription: INodeProperties[] = [
 				default: '',
 			},
 			{
-				displayName: 'State/Province',
-				name: 'stateProvince',
-				type: 'string',
-				default: '',
-			},
-			{
-				displayName: 'Postal Code',
-				name: 'postalCode',
-				type: 'string',
-				default: '',
-			},
-			{
 				displayName: 'Country',
 				name: 'country',
 				type: 'string',
 				default: 'US',
 				description: 'Two-letter country code (e.g., US, GB, CA)',
+			},
+			{
+				displayName: 'Email Address',
+				name: 'emailAddress',
+				type: 'string',
+				default: '',
+			},
+			{
+				displayName: 'First Name',
+				name: 'firstName',
+				type: 'string',
+				default: '',
+			},
+			{
+				displayName: 'Last Name',
+				name: 'lastName',
+				type: 'string',
+				default: '',
+			},
+			{
+				displayName: 'Organization Name',
+				name: 'organizationName',
+				type: 'string',
+				default: '',
 			},
 			{
 				displayName: 'Phone',
@@ -107,14 +107,14 @@ export const domainRegisterDescription: INodeProperties[] = [
 				description: 'Phone number in format +1.1234567890',
 			},
 			{
-				displayName: 'Email Address',
-				name: 'emailAddress',
+				displayName: 'Postal Code',
+				name: 'postalCode',
 				type: 'string',
 				default: '',
 			},
 			{
-				displayName: 'Organization Name',
-				name: 'organizationName',
+				displayName: 'State/Province',
+				name: 'stateProvince',
 				type: 'string',
 				default: '',
 			},
