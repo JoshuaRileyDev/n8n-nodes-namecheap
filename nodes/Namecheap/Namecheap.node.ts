@@ -13,23 +13,42 @@ import { dnsDescription } from './resources/dns';
 
 // Simple XML to JSON parser without external dependencies
 function parseXmlToJson(xml: string): Record<string, unknown> {
-	// Remove XML declaration and whitespace
+	// Remove XML declaration and normalize whitespace
 	const cleanXml = xml.replace(/<\?xml[^?]*\?>/g, '').trim();
 
-	function parseNode(xmlStr: string): Record<string, unknown> | string {
-		// Match opening tag with attributes
-		const tagMatch = xmlStr.match(/^<([^\s>]+)([^>]*)>/);
-		if (!tagMatch) return xmlStr;
+	function parseElement(xmlStr: string): Record<string, unknown> | string | null {
+		xmlStr = xmlStr.trim();
+		if (!xmlStr) return null;
 
-		const tagName = tagMatch[1];
-		const attributes = tagMatch[2];
-		const closingTag = `</${tagName}>`;
+		// Handle self-closing tags: <Tag attr="value" />
+		const selfClosingMatch = xmlStr.match(/^<([^\s>]+)([^>]*?)\/>/);
+		if (selfClosingMatch) {
+			const attributes = selfClosingMatch[2];
+			const obj: Record<string, unknown> = {};
 
-		// Find matching closing tag
-		const closingIndex = xmlStr.lastIndexOf(closingTag);
-		if (closingIndex === -1) return xmlStr;
+			// Parse attributes
+			if (attributes.trim()) {
+				const attrMatches = attributes.matchAll(/(\w+)="([^"]*)"/g);
+				for (const match of attrMatches) {
+					obj[match[1]] = match[2];
+				}
+			}
 
-		const content = xmlStr.substring(tagMatch[0].length, closingIndex);
+			return Object.keys(obj).length > 0 ? obj : '';
+		}
+
+		// Handle regular tags: <Tag>content</Tag>
+		const openTagMatch = xmlStr.match(/^<([^\s>]+)([^>]*)>/);
+		if (!openTagMatch) return xmlStr;
+
+		const tagName = openTagMatch[1];
+		const attributes = openTagMatch[2];
+		const closeTag = `</${tagName}>`;
+		const closeIndex = xmlStr.lastIndexOf(closeTag);
+
+		if (closeIndex === -1) return xmlStr;
+
+		const innerContent = xmlStr.substring(openTagMatch[0].length, closeIndex).trim();
 		const obj: Record<string, unknown> = {};
 
 		// Parse attributes
@@ -40,57 +59,91 @@ function parseXmlToJson(xml: string): Record<string, unknown> {
 			}
 		}
 
-		// Check if content contains child elements or is just text
-		if (!content.includes('<')) {
-			// Just text content
-			return Object.keys(obj).length > 0 ? { ...obj, _text: content } : content;
+		// If no inner content, return just attributes or empty string
+		if (!innerContent) {
+			return Object.keys(obj).length > 0 ? obj : '';
+		}
+
+		// Check if content is pure text (no child elements)
+		if (!innerContent.includes('<')) {
+			if (Object.keys(obj).length > 0) {
+				obj['_text'] = innerContent;
+				return obj;
+			}
+			return innerContent;
 		}
 
 		// Parse child elements
-		let remaining = content;
-		while (remaining.trim()) {
-			const childTagMatch = remaining.match(/^<([^\s>]+)([^>]*)>/);
-			if (!childTagMatch) {
-				// Text content before next tag
-				const nextTag = remaining.indexOf('<');
-				if (nextTag > 0) {
-					const text = remaining.substring(0, nextTag).trim();
-					if (text) obj['_text'] = text;
-					remaining = remaining.substring(nextTag);
-				} else {
-					const text = remaining.trim();
-					if (text) obj['_text'] = text;
-					break;
-				}
-			} else {
-				const childTagName = childTagMatch[1];
-				const childClosing = `</${childTagName}>`;
-				const childEnd = remaining.indexOf(childClosing);
+		let position = 0;
+		while (position < innerContent.length) {
+			const remaining = innerContent.substring(position).trim();
+			if (!remaining) break;
 
-				if (childEnd === -1) break;
+			// Check for self-closing tag
+			const selfClosing = remaining.match(/^<([^\s>]+)([^>]*?)\/>/);
+			if (selfClosing) {
+				const childName = selfClosing[1];
+				const childValue = parseElement(selfClosing[0]);
 
-				const childXml = remaining.substring(0, childEnd + childClosing.length);
-				const childValue = parseNode(childXml);
-
-				// Handle multiple elements with same name
-				if (obj[childTagName]) {
-					if (Array.isArray(obj[childTagName])) {
-						(obj[childTagName] as unknown[]).push(childValue);
+				if (obj[childName] !== undefined) {
+					if (Array.isArray(obj[childName])) {
+						(obj[childName] as unknown[]).push(childValue);
 					} else {
-						obj[childTagName] = [obj[childTagName], childValue];
+						obj[childName] = [obj[childName], childValue];
 					}
 				} else {
-					obj[childTagName] = childValue;
+					obj[childName] = childValue;
 				}
 
-				remaining = remaining.substring(childEnd + childClosing.length).trim();
+				position +=
+					innerContent.substring(position).indexOf(selfClosing[0]) + selfClosing[0].length;
+				continue;
+			}
+
+			// Check for opening tag
+			const openTag = remaining.match(/^<([^\s>]+)/);
+			if (openTag) {
+				const childName = openTag[1];
+				const childClose = `</${childName}>`;
+				const childCloseIndex = remaining.indexOf(childClose);
+
+				if (childCloseIndex !== -1) {
+					const childXml = remaining.substring(0, childCloseIndex + childClose.length);
+					const childValue = parseElement(childXml);
+
+					if (obj[childName] !== undefined) {
+						if (Array.isArray(obj[childName])) {
+							(obj[childName] as unknown[]).push(childValue);
+						} else {
+							obj[childName] = [obj[childName], childValue];
+						}
+					} else {
+						obj[childName] = childValue;
+					}
+
+					position += innerContent.substring(position).indexOf(childXml) + childXml.length;
+					continue;
+				}
+			}
+
+			// Skip whitespace/text between tags
+			const nextTag = remaining.indexOf('<');
+			if (nextTag > 0) {
+				const text = remaining.substring(0, nextTag).trim();
+				if (text && !obj['_text']) {
+					obj['_text'] = text;
+				}
+				position += innerContent.substring(position).indexOf(remaining) + nextTag;
+			} else {
+				break;
 			}
 		}
 
 		return obj;
 	}
 
-	return parseNode(cleanXml) as Record<string, unknown>;
+	const result = parseElement(cleanXml);
+	return result && typeof result === 'object' ? result : { response: result };
 }
 
 export class Namecheap implements INodeType {
