@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-namecheap",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"description": "n8n community node for Namecheap API - domain registration, DNS management, and nameserver configuration",
 	"license": "MIT",
 	"homepage": "https://github.com/joshuarileydev/n8n-nodes-namecheap#readme",
