@@ -1,247 +1,359 @@
-![Banner image](https://user-images.githubusercontent.com/10284570/173569848-c624317f-42b1-45a6-ab09-f0ea3c247648.png)
+# n8n-nodes-namecheap
 
-# n8n-nodes-starter
+![n8n.io - Workflow Automation](https://raw.githubusercontent.com/n8n-io/n8n/master/assets/n8n-logo.png)
 
-This starter repository helps you build custom integrations for [n8n](https://n8n.io). It includes example nodes, credentials, the node linter, and all the tooling you need to get started.
+This is an n8n community node that provides integration with the [Namecheap API](https://www.namecheap.com/support/api/intro/). It lets you automate domain registration, DNS management, and nameserver configuration directly from your n8n workflows.
 
-## Quick Start
+[n8n](https://n8n.io/) is a [fair-code licensed](https://docs.n8n.io/reference/license/) workflow automation platform.
 
-> [!TIP]
-> **New to building n8n nodes?** The fastest way to get started is with `npm create @n8n/node`. This command scaffolds a complete node package for you using the [@n8n/node-cli](https://www.npmjs.com/package/@n8n/node-cli).
+## Table of Contents
 
-**To create a new node package from scratch:**
+- [Installation](#installation)
+- [Prerequisites](#prerequisites)
+- [Credentials](#credentials)
+- [Operations](#operations)
+  - [Domain Operations](#domain-operations)
+  - [DNS Operations](#dns-operations)
+- [Compatibility](#compatibility)
+- [Usage Examples](#usage-examples)
+- [Resources](#resources)
+- [License](#license)
+
+## Installation
+
+Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes/installation/) in the n8n community nodes documentation.
+
+### Community Nodes Installation
+
+1. Go to **Settings > Community Nodes** in your n8n instance
+2. Select **Install**
+3. Enter `n8n-nodes-namecheap` in the **Enter npm package name** field
+4. Click **Install**
+
+Alternatively, if you're self-hosting n8n:
 
 ```bash
-npm create @n8n/node
+npm install n8n-nodes-namecheap
 ```
-
-**Already using this starter? Start developing with:**
-
-```bash
-npm run dev
-```
-
-This starts n8n with your nodes loaded and hot reload enabled.
-
-## What's Included
-
-This starter repository includes two example nodes to learn from:
-
-- **[Example Node](nodes/Example/)** - A simple starter node that shows the basic structure with a custom `execute` method
-- **[GitHub Issues Node](nodes/GithubIssues/)** - A complete, production-ready example built using the **declarative style**:
-  - **Low-code approach** - Define operations declaratively without writing request logic
-  - Multiple resources (Issues, Comments)
-  - Multiple operations (Get, Get All, Create)
-  - Two authentication methods (OAuth2 and Personal Access Token)
-  - List search functionality for dynamic dropdowns
-  - Proper error handling and typing
-  - Ideal for HTTP API-based integrations
-
-> [!TIP]
-> The declarative/low-code style (used in GitHub Issues) is the recommended approach for building nodes that interact with HTTP APIs. It significantly reduces boilerplate code and handles requests automatically.
-
-Browse these examples to understand both approaches, then modify them or create your own.
-
-## Finding Inspiration
-
-Looking for more examples? Check out these resources:
-
-- **[npm Community Nodes](https://www.npmjs.com/search?q=keywords:n8n-community-node-package)** - Browse thousands of community-built nodes on npm using the `n8n-community-node-package` tag
-- **[n8n Built-in Nodes](https://github.com/n8n-io/n8n/tree/master/packages/nodes-base/nodes)** - Study the source code of n8n's official nodes for production-ready patterns and best practices
-- **[n8n Credentials](https://github.com/n8n-io/n8n/tree/master/packages/nodes-base/credentials)** - See how authentication is implemented for various services
-
-These are excellent resources to understand how to structure your nodes, handle different API patterns, and implement advanced features.
 
 ## Prerequisites
 
-Before you begin, install the following on your development machine:
+Before using this node, you need:
 
-### Required
+1. A Namecheap account
+2. API access enabled on your Namecheap account
+3. Your API key from Namecheap
+4. A whitelisted IP address for API access
 
-- **[Node.js](https://nodejs.org/)** (v22 or higher) and npm
-  - Linux/Mac/WSL: Install via [nvm](https://github.com/nvm-sh/nvm)
-  - Windows: Follow [Microsoft's NodeJS guide](https://learn.microsoft.com/en-us/windows/dev-environment/javascript/nodejs-on-windows)
-- **[git](https://git-scm.com/downloads)**
+### Enabling Namecheap API Access
 
-### Recommended
+1. Log in to your [Namecheap account](https://www.namecheap.com/)
+2. Navigate to **Profile > Tools > API Access**
+3. Enable API access
+4. Whitelist your server's IP address
+5. Copy your API key
 
-- Follow n8n's [development environment setup guide](https://docs.n8n.io/integrations/creating-nodes/build/node-development-environment/)
+**Note:** Namecheap offers a [Sandbox Environment](https://www.sandbox.namecheap.com/) for testing API calls without affecting real domains.
 
-> [!NOTE]
-> The `@n8n/node-cli` is included as a dev dependency and will be installed automatically when you run `npm install`. The CLI includes n8n for local development, so you don't need to install n8n globally.
+## Credentials
 
-## Getting Started with this Starter
+To use this node, you'll need to configure the **Namecheap API** credentials in n8n:
 
-Follow these steps to create your own n8n community node package:
+| Field            | Description                                                 | Required            |
+| ---------------- | ----------------------------------------------------------- | ------------------- |
+| **API User**     | Your Namecheap username                                     | Yes                 |
+| **API Key**      | Your Namecheap API key from the API Access page             | Yes                 |
+| **Username**     | Username for API commands (usually the same as API User)    | Yes                 |
+| **Client IP**    | Your whitelisted IP address for API access                  | Yes                 |
+| **Sandbox Mode** | Toggle to use the Namecheap sandbox environment for testing | No (default: false) |
 
-### 1. Create Your Repository
+### How to Add Credentials
 
-[Generate a new repository](https://github.com/n8n-io/n8n-nodes-starter/generate) from this template, then clone it:
+1. In your n8n workflow, add the Namecheap node
+2. Click on **Credential to connect with**
+3. Select **Create New**
+4. Enter your Namecheap API credentials
+5. Click **Save**
 
-```bash
-git clone https://github.com/<your-organization>/<your-repo-name>.git
-cd <your-repo-name>
-```
+## Operations
 
-### 2. Install Dependencies
+The Namecheap node supports two main resources: **Domain** and **DNS**.
 
-```bash
-npm install
-```
+### Domain Operations
 
-This installs all required dependencies including the `@n8n/node-cli`.
+Manage domain registrations and check domain availability.
 
-### 3. Explore the Examples
+#### Check Availability
 
-Browse the example nodes in [nodes/](nodes/) and [credentials/](credentials/) to understand the structure:
+Check if one or more domain names are available for registration.
 
-- Start with [nodes/Example/](nodes/Example/) for a basic node
-- Study [nodes/GithubIssues/](nodes/GithubIssues/) for a real-world implementation
+**Parameters:**
 
-### 4. Build Your Node
+- **Domain List** (required): Comma-separated list of domain names to check (e.g., `example.com,test.net,mysite.org`)
 
-Edit the example nodes to fit your use case, or create new node files by copying the structure from [nodes/Example/](nodes/Example/).
+**Example Use Cases:**
 
-> [!TIP]
-> If you want to scaffold a completely new node package, use `npm create @n8n/node` to start fresh with the CLI's interactive generator.
+- Bulk check domain availability before purchasing
+- Validate domain names in automated workflows
+- Find available domains based on keywords
 
-### 5. Configure Your Package
+**Response:** Returns availability status for each domain checked.
 
-Update `package.json` with your details:
+#### Register
 
-- `name` - Your package name (must start with `n8n-nodes-`)
-- `author` - Your name and email
-- `repository` - Your repository URL
-- `description` - What your node does
+Register a new domain name with Namecheap.
 
-Make sure your node is registered in the `n8n.nodes` array.
+**Parameters:**
 
-### 6. Develop and Test Locally
+**Required:**
 
-Start n8n with your node loaded:
+- **Domain Name**: The domain to register (e.g., `example.com`)
+- **Years**: Number of years to register (1-10)
 
-```bash
-npm run dev
-```
+**Registrant Contact Information:**
 
-This command runs `n8n-node dev` which:
+- First Name
+- Last Name
+- Address 1
+- Address 2
+- City
+- State/Province
+- Postal Code
+- Country (two-letter code, e.g., US, GB, CA)
+- Phone (format: +1.1234567890)
+- Email Address
+- Organization Name
 
-- Builds your node with watch mode
-- Starts n8n with your node available
-- Automatically rebuilds when you make changes
-- Opens n8n in your browser (usually http://localhost:5678)
+**Additional Fields:**
 
-You can now test your node in n8n workflows!
+- **Add Free WhoisGuard**: Enable free WHOIS privacy protection (default: true)
+- **Enable WhoisGuard**: Activate WhoisGuard privacy (default: true)
+- **Extended Attributes**: XML formatted extended attributes for specific TLDs
+- **Nameservers**: Comma-separated nameservers (e.g., `ns1.example.com,ns2.example.com`). Leave empty for Namecheap defaults.
 
-> [!NOTE]
-> Learn more about CLI commands in the [@n8n/node-cli documentation](https://www.npmjs.com/package/@n8n/node-cli).
+**Example Use Cases:**
 
-### 7. Lint Your Code
+- Automate domain registration for new projects
+- Register domains in bulk from a list
+- Integrate domain registration with payment systems
 
-Check for errors:
+### DNS Operations
 
-```bash
-npm run lint
-```
+Manage DNS records and nameserver configurations for your domains.
 
-Auto-fix issues when possible:
+#### Get DNS Records
 
-```bash
-npm run lint:fix
-```
+Retrieve all DNS host records for a domain.
 
-### 8. Build for Production
+**Parameters:**
 
-When ready to publish:
+- **Domain Name** (required): The domain to get records for (e.g., `example.com`)
 
-```bash
-npm run build
-```
+**Returns:** List of all DNS records including A, CNAME, MX, TXT, and other record types with their values and TTLs.
 
-This compiles your TypeScript code to the `dist/` folder.
+**Example Use Cases:**
 
-### 9. Prepare for Publishing
+- Audit DNS configurations
+- Backup DNS records
+- Monitor DNS changes
 
-Before publishing:
+#### Set DNS Records
 
-1. **Update documentation**: Replace this README with your node's documentation. Use [README_TEMPLATE.md](README_TEMPLATE.md) as a starting point.
-2. **Update the LICENSE**: Add your details to the [LICENSE](LICENSE.md) file.
-3. **Test thoroughly**: Ensure your node works in different scenarios.
+Configure DNS host records for a domain.
 
-### 10. Publish to npm
+**Parameters:**
 
-Publish your package to make it available to the n8n community:
+- **Domain Name** (required): The domain to set records for
+- **DNS Records**: Collection of DNS records to set
+  - **Record Type**: A, AAAA, CNAME, MX, TXT, NS, SRV, CAA, URL, URL301, FRAME
+  - **Host Name**: Subdomain or `@` for root domain
+  - **Address/Value**: IP address, domain name, or text value
+  - **TTL**: Time to live in seconds (default: 1800, minimum: 60)
+  - **MX Priority**: Priority for MX records (lower = higher priority, default: 10)
+- **Email Type**: MX (custom), MXE (Namecheap email), or FWD (forwarding)
 
-```bash
-npm publish
-```
+**Supported Record Types:**
 
-Learn more about [publishing to npm](https://docs.npmjs.com/packages-and-modules/contributing-packages-to-the-registry).
+- **A**: IPv4 address record
+- **AAAA**: IPv6 address record
+- **CNAME**: Canonical name record
+- **MX**: Mail exchange record
+- **TXT**: Text record (SPF, DKIM, verification, etc.)
+- **NS**: Name server record
+- **SRV**: Service record
+- **CAA**: Certificate authority authorization
+- **URL**: URL redirect
+- **URL301**: Permanent redirect (301)
+- **FRAME**: URL frame redirect
 
-### 11. Submit for Verification (Optional)
+**Example Use Cases:**
 
-Get your node verified for n8n Cloud:
+- Point domain to web hosting
+- Configure email services (MX records)
+- Set up subdomains
+- Add SPF/DKIM records for email authentication
+- Configure CDN or load balancer records
 
-1. Ensure your node meets the [requirements](https://docs.n8n.io/integrations/creating-nodes/deploy/submit-community-nodes/):
-   - Uses MIT license ✅ (included in this starter)
-   - No external package dependencies
-   - Follows n8n's design guidelines
-   - Passes quality and security review
+#### Set Default Nameservers
 
-2. Submit through the [n8n Creator Portal](https://creators.n8n.io/nodes)
+Configure domain to use Namecheap's default nameservers.
 
-**Benefits of verification:**
+**Parameters:**
 
-- Available directly in n8n Cloud
-- Discoverable in the n8n nodes panel
-- Verified badge for quality assurance
-- Increased visibility in the n8n community
+- **Domain Name** (required): The domain to configure
 
-## Available Scripts
+**Example Use Cases:**
 
-This starter includes several npm scripts to streamline development:
+- Switch to Namecheap DNS management
+- Reset nameserver configuration
+- Use Namecheap's DNS for new domains
 
-| Script                | Description                                                      |
-| --------------------- | ---------------------------------------------------------------- |
-| `npm run dev`         | Start n8n with your node and watch for changes (runs `n8n-node dev`) |
-| `npm run build`       | Compile TypeScript to JavaScript for production (runs `n8n-node build`) |
-| `npm run build:watch` | Build in watch mode (auto-rebuild on changes)                    |
-| `npm run lint`        | Check your code for errors and style issues (runs `n8n-node lint`) |
-| `npm run lint:fix`    | Automatically fix linting issues when possible (runs `n8n-node lint --fix`) |
-| `npm run release`     | Create a new release (runs `n8n-node release`)                   |
+#### Set Custom Nameservers
 
-> [!TIP]
-> These scripts use the [@n8n/node-cli](https://www.npmjs.com/package/@n8n/node-cli) under the hood. You can also run CLI commands directly, e.g., `npx n8n-node dev`.
+Configure domain to use custom nameservers (e.g., for external DNS providers like Cloudflare, AWS Route 53).
+
+**Parameters:**
+
+- **Domain Name** (required): The domain to configure
+- **Nameservers** (required): Comma-separated list of at least 2 nameservers (e.g., `ns1.cloudflare.com,ns2.cloudflare.com`)
+
+**Example Use Cases:**
+
+- Point domain to Cloudflare DNS
+- Use AWS Route 53 for DNS management
+- Configure nameservers for external DNS providers
+- Set up DNS hosting with your own name servers
+
+## Compatibility
+
+- **n8n version**: 0.220.0 or higher
+- **Tested with**: n8n 1.0+
+
+## Usage Examples
+
+### Example 1: Check Domain Availability and Register
+
+Create a workflow that checks if a domain is available and automatically registers it if available.
+
+1. **Manual Trigger** - Start the workflow
+2. **Namecheap Node** - Check availability
+   - Resource: Domain
+   - Operation: Check Availability
+   - Domain List: `{{$json.domainName}}`
+3. **IF Node** - Check if available
+4. **Namecheap Node** - Register domain if available
+   - Resource: Domain
+   - Operation: Register
+   - Configure registrant details
+
+### Example 2: Update DNS Records
+
+Automatically update DNS records when deploying a new application.
+
+1. **Webhook** - Receive deployment notification
+2. **Namecheap Node** - Set DNS Records
+   - Resource: DNS
+   - Operation: Set DNS Records
+   - Domain Name: `example.com`
+   - Add A record pointing to new server IP
+
+### Example 3: DNS Backup
+
+Create a scheduled backup of all DNS records.
+
+1. **Schedule Trigger** - Daily at midnight
+2. **Namecheap Node** - Get DNS Records
+   - Resource: DNS
+   - Operation: Get DNS Records
+   - Domain Name: `example.com`
+3. **Write Binary File Node** - Save to backup location
+
+### Example 4: Multi-Domain DNS Management
+
+Update DNS records across multiple domains.
+
+1. **Google Sheets** - Read list of domains
+2. **Split In Batches** - Process in batches
+3. **Namecheap Node** - Set DNS Records
+   - Resource: DNS
+   - Operation: Set DNS Records
+   - Configure records for each domain
+
+## API Response Format
+
+The Namecheap API returns responses in XML format, which this node automatically parses into JSON for easy use in n8n workflows. The parsed response includes:
+
+- **ApiResponse**: Root object containing all response data
+- **Status**: Success or error status
+- **CommandResponse**: The actual data returned by the operation
+- **Errors**: Any errors encountered during the operation
+
+## Limitations
+
+- Namecheap API has rate limits - check their [API documentation](https://www.namecheap.com/support/api/intro/) for current limits
+- Some TLDs require extended attributes for registration
+- DNS changes may take time to propagate (typically 5-30 minutes)
+- Sandbox environment may have limited functionality compared to production
 
 ## Troubleshooting
 
-### My node doesn't appear in n8n
+### Common Issues
 
-1. Make sure you ran `npm install` to install dependencies
-2. Check that your node is listed in `package.json` under `n8n.nodes`
-3. Restart the dev server with `npm run dev`
-4. Check the console for any error messages
+**Issue**: "Authentication failed"
 
-### Linting errors
+- **Solution**: Verify your API key, username, and that your IP is whitelisted in Namecheap
 
-Run `npm run lint:fix` to automatically fix most common issues. For remaining errors, check the [n8n node development guidelines](https://docs.n8n.io/integrations/creating-nodes/).
+**Issue**: "Invalid domain format"
 
-### TypeScript errors
+- **Solution**: Ensure domain names are in the format `example.com` (no http://, www, or trailing slashes)
 
-Make sure you're using Node.js v22 or higher and have run `npm install` to get all type definitions.
+**Issue**: "Minimum nameservers required"
+
+- **Solution**: Custom nameservers require at least 2 nameservers
+
+**Issue**: DNS changes not reflecting
+
+- **Solution**: DNS propagation can take 5-30 minutes. Use a DNS checker tool to verify propagation.
 
 ## Resources
 
-- **[n8n Node Documentation](https://docs.n8n.io/integrations/creating-nodes/)** - Complete guide to building nodes
-- **[n8n Community Forum](https://community.n8n.io/)** - Get help and share your nodes
-- **[@n8n/node-cli Documentation](https://www.npmjs.com/package/@n8n/node-cli)** - CLI tool reference
-- **[n8n Creator Portal](https://creators.n8n.io/nodes)** - Submit your node for verification
-- **[Submit Community Nodes Guide](https://docs.n8n.io/integrations/creating-nodes/deploy/submit-community-nodes/)** - Verification requirements and process
+- [n8n Community Nodes Documentation](https://docs.n8n.io/integrations/community-nodes/)
+- [Namecheap API Documentation](https://www.namecheap.com/support/api/intro/)
+- [Namecheap API Methods](https://www.namecheap.com/support/api/methods/)
+- [Namecheap Sandbox Environment](https://www.sandbox.namecheap.com/)
+
+## Version History
+
+### 0.1.0
+
+- Initial release
+- Domain availability checking
+- Domain registration
+- DNS record management (Get, Set)
+- Nameserver configuration (Default, Custom)
 
 ## Contributing
 
-Have suggestions for improving this starter? [Open an issue](https://github.com/n8n-io/n8n-nodes-starter/issues) or submit a pull request!
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Support
+
+If you encounter any issues or have questions:
+
+- [Open an issue on GitHub](https://github.com/joshuarileydev/n8n-nodes-namecheap/issues)
+- [n8n Community Forum](https://community.n8n.io/)
+
+## Author
+
+**Joshua Riley**
+
+- Email: joshua@joshuariley.co.uk
+- GitHub: [@joshuarileydev](https://github.com/joshuarileydev)
 
 ## License
 
-[MIT](https://github.com/n8n-io/n8n-nodes-starter/blob/master/LICENSE.md)
+[MIT](LICENSE.md)
+
+## Disclaimer
+
+This is a community-developed node and is not officially affiliated with or endorsed by Namecheap. Use at your own risk. Always test in the Namecheap sandbox environment before performing operations on production domains.
